@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>King Expense Tracker</title>
+<meta name="theme-color" content="#121212">
+<meta name="description" content="Royal-themed personal expense &amp; income manager with real cloud sync.">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="assets/icons/icon-192.png">
+<link rel="icon" href="assets/icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body data-theme="dark">
+
+<!-- ============ AUTH SCREEN ============ -->
+<div id="auth-screen">
+  <div class="auth-card">
+    <div class="auth-header">
+      <div class="crown-badge">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M3 18h18l-1.5-9-4.5 4-3-6-3 6-4.5-4L3 18z" fill="#241B03" stroke="#241B03" stroke-width="0.5"/></svg>
+      </div>
+      <h1>King Expense Tracker</h1>
+      <p>Rule Your Finances</p>
+    </div>
+
+    <div id="auth-msg"></div>
+
+    <!-- LOGIN (single admin only — no registration) -->
+    <form id="login-form">
+      <div class="field">
+        <label>Admin Email</label>
+        <input type="email" id="login-email" placeholder="you@example.com" required autocomplete="username">
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <input type="password" id="login-password" placeholder="Enter your password" required autocomplete="current-password">
+      </div>
+      <button type="submit" class="btn btn-gold" id="login-btn">Log In</button>
+      <div class="auth-link-row">
+        <button type="button" id="forgot-password-btn">Forgot Password?</button>
+      </div>
+    </form>
+
+    <div class="auth-link-row" style="margin-top:18px;font-size:11.5px;">
+      There is no public sign-up — the single admin account is created once in the Firebase console. See README.md.
+    </div>
+  </div>
+</div>
+
+<!-- ============ APP SCREEN ============ -->
+<div id="app-screen" class="hidden">
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <div class="crown-badge"><svg viewBox="0 0 24 24" fill="none"><path d="M3 18h18l-1.5-9-4.5 4-3-6-3 6-4.5-4L3 18z" fill="#241B03"/></svg></div>
+      <div class="brand-name">King<br><span>Expense</span></div>
+    </div>
+    <button class="nav-item active" data-page="dashboard" onclick="goPage('dashboard')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+      <span data-i18n="nav.dashboard">Dashboard</span>
+    </button>
+    <button class="nav-item" data-page="expenses" onclick="goPage('expenses')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 14h5"/></svg>
+      <span data-i18n="nav.expenses">Expenses</span>
+    </button>
+    <button class="nav-item" data-page="reports" onclick="goPage('reports')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 20V10M12 20V4M20 20v-7"/></svg>
+      <span data-i18n="nav.reports">Reports</span>
+    </button>
+    <button class="nav-item" data-page="budget" onclick="goPage('budget')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+      <span data-i18n="nav.budget">Budget Planner</span>
+    </button>
+    <button class="nav-item" data-page="reminders" onclick="goPage('reminders')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 01-3.4 0"/></svg>
+      <span data-i18n="nav.reminders">Reminders</span>
+    </button>
+    <button class="nav-item" data-page="insights" onclick="goPage('insights')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z"/></svg>
+      <span data-i18n="nav.insights">Insights</span>
+    </button>
+    <button class="nav-item" data-page="settings" onclick="goPage('settings')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.9l.1.1a2 2 0 11-2.9 2.9l-.1-.1a1.7 1.7 0 00-1.9-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1-1.6 1.7 1.7 0 00-1.9.3l-.1.1a2 2 0 11-2.9-2.9l.1-.1a1.7 1.7 0 00.3-1.9 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1 1.7 1.7 0 00-.3-1.9l-.1-.1a2 2 0 112.9-2.9l.1.1a1.7 1.7 0 001.9.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.9-.3l.1-.1a2 2 0 112.9 2.9l-.1.1a1.7 1.7 0 00-.3 1.9V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/></svg>
+      <span data-i18n="nav.settings">Settings</span>
+    </button>
+    <div class="sidebar-footer">
+      <div class="sync-row" style="padding:0 6px 10px;">
+        <div class="sync-dot" id="sync-dot"></div>
+        <span id="sync-label">Connecting…</span>
+      </div>
+      <div class="user-chip">
+        <div class="user-avatar" id="sidebar-avatar">K</div>
+        <div class="user-meta">
+          <div class="name" id="sidebar-name">-</div>
+          <div class="mobile" id="sidebar-email">-</div>
+        </div>
+      </div>
+      <button class="btn btn-outline btn-sm" style="width:100%;margin-top:10px;" onclick="logout()">Log Out</button>
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <button class="icon-btn menu-toggle" onclick="toggleSidebar()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+        </button>
+        <h2 id="page-title">Dashboard</h2>
+      </div>
+      <div class="topbar-actions">
+        <button class="icon-btn hidden" id="install-btn" title="Install app">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg>
+        </button>
+        <button class="icon-btn" onclick="toggleTheme()" title="Toggle theme">
+          <svg id="theme-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- ===== DASHBOARD PAGE ===== -->
+    <div class="page" id="page-dashboard">
+      <div class="grid grid-4" style="margin-bottom:18px;">
+        <div class="card stat-card stat-income">
+          <div class="crown-badge"><svg viewBox="0 0 24 24" fill="none"><path d="M3 18h18l-1.5-9-4.5 4-3-6-3 6-4.5-4L3 18z" fill="#241B03"/></svg></div>
+          <div class="label" data-i18n="dash.totalIncome">Total Income</div>
+          <div class="value" id="stat-income">₹0</div>
+        </div>
+        <div class="card stat-card stat-expense">
+          <div class="crown-badge"><svg viewBox="0 0 24 24" fill="none"><path d="M3 18h18l-1.5-9-4.5 4-3-6-3 6-4.5-4L3 18z" fill="#241B03"/></svg></div>
+          <div class="label" data-i18n="dash.totalExpense">Total Expenses</div>
+          <div class="value" id="stat-expense">₹0</div>
+        </div>
+        <div class="card stat-card stat-balance">
+          <div class="crown-badge"><svg viewBox="0 0 24 24" fill="none"><path d="M3 18h18l-1.5-9-4.5 4-3-6-3 6-4.5-4L3 18z" fill="#241B03"/></svg></div>
+          <div class="label" data-i18n="dash.balance">Current Balance</div>
+          <div class="value" id="stat-balance">₹0</div>
+        </div>
+        <div class="card stat-card">
+          <div class="label" data-i18n="dash.today">Today's Expenses</div>
+          <div class="value" id="stat-today">₹0</div>
+          <div class="sub" id="stat-today-count">0 transactions</div>
+        </div>
+      </div>
+      <div class="grid grid-3" style="margin-bottom:18px;">
+        <div class="card">
+          <div class="label" style="margin-bottom:6px;" data-i18n="dash.week">Weekly Expenses</div>
+          <div class="value" style="font-size:22px;" id="stat-week">₹0</div>
+        </div>
+        <div class="card">
+          <div class="label" style="margin-bottom:6px;" data-i18n="dash.month">Monthly Expenses</div>
+          <div class="value" style="font-size:22px;" id="stat-month">₹0</div>
+        </div>
+        <div class="card">
+          <div class="label" style="margin-bottom:6px;" data-i18n="dash.year">Yearly Expenses</div>
+          <div class="value" style="font-size:22px;" id="stat-year">₹0</div>
+        </div>
+      </div>
+      <div class="grid grid-2">
+        <div class="card">
+          <h3 class="section-title" data-i18n="dash.categoryBreakdown">Category Breakdown</h3>
+          <div class="chart-wrap"><canvas id="pieChart" role="img" aria-label="Pie chart of expenses by category"></canvas></div>
+        </div>
+        <div class="card">
+          <h3 class="section-title" data-i18n="dash.last6months">Last 6 Months (Income vs Expense)</h3>
+          <div class="chart-wrap"><canvas id="barChart" role="img" aria-label="Bar chart comparing income and expenses over the last 6 months"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== EXPENSES PAGE ===== -->
+    <div class="page hidden" id="page-expenses">
+      <div class="toolbar">
+        <input type="text" id="exp-search" placeholder="Search description, category, method..." style="min-width:220px;" oninput="renderExpensesTable()">
+        <select id="exp-filter-category" onchange="renderExpensesTable()">
+          <option value="" data-i18n="expenses.allCategories">All Categories</option>
+        </select>
+        <select id="exp-filter-type" onchange="renderExpensesTable()">
+          <option value="" data-i18n="expenses.allTypes">All Types</option>
+          <option value="expense" data-i18n="expenses.expense">Expense</option>
+          <option value="income" data-i18n="expenses.income">Income</option>
+        </select>
+        <div class="spacer"></div>
+        <button class="btn btn-gold" style="width:auto;" onclick="openExpenseModal()" data-i18n="expenses.addEntry">+ Add Entry</button>
+      </div>
+      <div class="card">
+        <div class="table-wrap">
+          <table id="expenses-table">
+            <thead><tr>
+              <th>Date</th><th>Time</th><th>Category</th><th>Type</th><th>Amount</th><th>Payment</th><th>Notes</th><th></th>
+            </tr></thead>
+            <tbody id="expenses-tbody"></tbody>
+          </table>
+        </div>
+        <div class="empty-state hidden" id="expenses-empty">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 14h5"/></svg>
+          <div>No entries yet. Add your first expense or income above.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== REPORTS PAGE ===== -->
+    <div class="page hidden" id="page-reports">
+      <div class="tabs" id="report-tabs">
+        <button class="active" data-range="daily" onclick="setReportRange('daily')" data-i18n="reports.daily">Daily</button>
+        <button data-range="weekly" onclick="setReportRange('weekly')" data-i18n="reports.weekly">Weekly</button>
+        <button data-range="monthly" onclick="setReportRange('monthly')" data-i18n="reports.monthly">Monthly</button>
+        <button data-range="yearly" onclick="setReportRange('yearly')" data-i18n="reports.yearly">Yearly</button>
+        <button data-range="custom" onclick="setReportRange('custom')" data-i18n="reports.custom">Custom</button>
+      </div>
+      <div class="toolbar hidden" id="custom-range-row">
+        <input type="date" id="custom-start">
+        <span style="color:var(--text-dim);">to</span>
+        <input type="date" id="custom-end">
+        <button class="btn btn-outline btn-sm" onclick="renderReport()">Apply</button>
+      </div>
+
+      <div class="grid grid-3" style="margin-bottom:18px;">
+        <div class="card stat-card stat-income"><div class="label">Total Income</div><div class="value" id="rep-income">₹0</div></div>
+        <div class="card stat-card stat-expense"><div class="label">Total Expenses</div><div class="value" id="rep-expense">₹0</div></div>
+        <div class="card stat-card stat-balance"><div class="label">Remaining Balance</div><div class="value" id="rep-balance">₹0</div></div>
+      </div>
+
+      <div class="grid grid-2" style="margin-bottom:18px;">
+        <div class="card">
+          <h3 class="section-title">Category-wise Summary</h3>
+          <div class="table-wrap">
+            <table><thead><tr><th>Category</th><th>Amount</th><th>Share</th></tr></thead>
+              <tbody id="rep-category-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="card">
+          <h3 class="section-title">Distribution</h3>
+          <div class="chart-wrap"><canvas id="reportPieChart" role="img" aria-label="Pie chart of report category breakdown"></canvas></div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom:18px;">
+        <h3 class="section-title">Export &amp; Share</h3>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <button class="btn btn-outline" style="width:auto;" onclick="exportPDF()" data-i18n="reports.pdf">Download PDF</button>
+          <button class="btn btn-outline" style="width:auto;" onclick="exportExcel()" data-i18n="reports.excel">Download Excel (.xlsx)</button>
+          <button class="btn btn-gold" style="width:auto;background:linear-gradient(135deg,#3ED17F,#1E9E5C);color:#06280F;" onclick="shareWhatsApp()" data-i18n="reports.whatsapp">Share on WhatsApp</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== BUDGET PAGE ===== -->
+    <div class="page hidden" id="page-budget">
+      <div class="card" style="margin-bottom:18px;">
+        <h3 class="section-title">Set Monthly Budget by Category</h3>
+        <div id="budget-form-grid" class="grid grid-3"></div>
+        <button class="btn btn-gold" style="width:auto;margin-top:16px;" onclick="saveBudgets()">Save Budgets</button>
+      </div>
+      <div class="card">
+        <h3 class="section-title">This Month's Progress</h3>
+        <div id="budget-progress-list"></div>
+      </div>
+    </div>
+
+    <!-- ===== REMINDERS PAGE ===== -->
+    <div class="page hidden" id="page-reminders">
+      <div class="toolbar">
+        <div class="spacer"></div>
+        <button class="btn btn-gold" style="width:auto;" onclick="openReminderModal()">+ New Reminder</button>
+      </div>
+      <div class="card">
+        <div id="reminders-list"></div>
+        <div class="empty-state hidden" id="reminders-empty">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9"/></svg>
+          <div>No reminders set. Create one so you never miss a payment.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== INSIGHTS PAGE (11.11 AI Financial Insights - rule-based, free) ===== -->
+    <div class="page hidden" id="page-insights">
+      <p style="color:var(--text-dim);font-size:13px;margin-top:0;max-width:640px;">Automatic analysis of your own data — spending trends, top categories, budget suggestions and overspending alerts. Generated instantly on-device, no paid AI service required.</p>
+      <div class="grid grid-2" id="insights-grid" style="margin-top:14px;"></div>
+    </div>
+
+    <!-- ===== SETTINGS PAGE ===== -->
+    <div class="page hidden" id="page-settings">
+      <div class="tabs" id="settings-tabs">
+        <button class="active" data-tab="profile" onclick="setSettingsTab('profile')" data-i18n="settings.tab.profile">Profile</button>
+        <button data-tab="categories" onclick="setSettingsTab('categories')" data-i18n="settings.tab.categories">Categories</button>
+        <button data-tab="data" onclick="setSettingsTab('data')" data-i18n="settings.tab.data">Backup &amp; Import</button>
+        <button data-tab="language" onclick="setSettingsTab('language')" data-i18n="settings.tab.language">Language &amp; Currency</button>
+        <button data-tab="security" onclick="setSettingsTab('security')" data-i18n="settings.tab.security">Security</button>
+        <button data-tab="appearance" onclick="setSettingsTab('appearance')" data-i18n="settings.tab.appearance">Appearance</button>
+      </div>
+
+      <!-- Profile -->
+      <div class="settings-panel" id="settings-panel-profile">
+        <div class="card">
+          <h3 class="section-title" data-i18n="settings.profile.title">Your Profile</h3>
+          <div style="display:flex;gap:20px;align-items:center;flex-wrap:wrap;margin-bottom:18px;">
+            <div id="profile-photo-preview" class="user-avatar" style="width:84px;height:84px;font-size:30px;background-size:cover;background-position:center;"></div>
+            <div>
+              <input type="file" id="profile-photo-input" accept="image/*" class="hidden">
+              <button class="btn btn-outline btn-sm" style="width:auto;" onclick="document.getElementById('profile-photo-input').click()" data-i18n="settings.profile.changePhoto">Change Photo</button>
+              <div style="font-size:11.5px;color:var(--text-dim);margin-top:6px;">Stored as a small thumbnail directly in your database — no paid file storage needed.</div>
+            </div>
+          </div>
+          <div class="field"><label data-i18n="settings.profile.displayName">Display Name</label><input type="text" id="profile-name" placeholder="e.g. Rajesh Kumar"></div>
+          <div class="field"><label>Email</label><input type="text" id="profile-email" disabled></div>
+          <button class="btn btn-gold" style="width:auto;" onclick="saveProfile()" data-i18n="settings.profile.save">Save Profile</button>
+        </div>
+      </div>
+
+      <!-- Categories -->
+      <div class="settings-panel hidden" id="settings-panel-categories">
+        <div class="card">
+          <h3 class="section-title" data-i18n="settings.categories.title">Manage Expense Categories</h3>
+          <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;" id="settings-categories-list"></div>
+          <div style="display:flex;gap:10px;">
+            <input type="text" id="settings-new-category" placeholder="New category name" style="flex:1;padding:10px 12px;border-radius:8px;border:1px solid var(--gray-600);background:var(--panel-2);color:var(--text);">
+            <button class="btn btn-gold" style="width:auto;" onclick="addCategory()" data-i18n="settings.categories.add">Add Category</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Backup / Import / Export -->
+      <div class="settings-panel hidden" id="settings-panel-data">
+        <div class="card" style="margin-bottom:18px;">
+          <h3 class="section-title" data-i18n="settings.data.backupTitle">Backup Database</h3>
+          <p style="color:var(--text-dim);font-size:13.5px;">Download a full backup (expenses, categories, budgets, reminders, profile) as one JSON file, and keep a timestamped copy in your cloud database.</p>
+          <button class="btn btn-outline" style="width:auto;" onclick="backupNow()" data-i18n="settings.data.backupBtn">Backup Now (Download + Save to Cloud)</button>
+          <div id="backup-list" style="margin-top:16px;"></div>
+        </div>
+        <div class="card" style="margin-bottom:18px;">
+          <h3 class="section-title" data-i18n="settings.data.restoreTitle">Restore Database</h3>
+          <p style="color:var(--text-dim);font-size:13.5px;">Restore from a previously downloaded backup JSON file. This replaces your current data — take a fresh backup first if unsure.</p>
+          <input type="file" id="restore-file-input" accept="application/json" class="hidden">
+          <button class="btn btn-outline" style="width:auto;" onclick="document.getElementById('restore-file-input').click()" data-i18n="settings.data.restoreBtn">Choose Backup File</button>
+        </div>
+        <div class="card">
+          <h3 class="section-title" data-i18n="settings.data.importTitle">Import Expenses (Excel / CSV)</h3>
+          <p style="color:var(--text-dim);font-size:13.5px;">Columns expected: Date, Time, Type, Category, Amount, Method, Notes — matches the Excel export format.</p>
+          <input type="file" id="import-file-input" accept=".xlsx,.xls,.csv" class="hidden">
+          <button class="btn btn-outline" style="width:auto;" onclick="document.getElementById('import-file-input').click()" data-i18n="settings.data.importBtn">Choose File to Import</button>
+        </div>
+      </div>
+
+      <!-- Language & Currency -->
+      <div class="settings-panel hidden" id="settings-panel-language">
+        <div class="grid grid-2">
+          <div class="card">
+            <h3 class="section-title" data-i18n="settings.language.title">Language</h3>
+            <div class="field">
+              <select id="lang-select" onchange="setLanguage(this.value)">
+                <option value="en">English</option>
+                <option value="ta">தமிழ் (Tamil)</option>
+              </select>
+            </div>
+          </div>
+          <div class="card">
+            <h3 class="section-title" data-i18n="settings.currency.title">Currency</h3>
+            <div class="field">
+              <select id="currency-select" onchange="setCurrency(this.value)">
+                <option value="INR">₹ Indian Rupee (INR)</option>
+                <option value="USD">$ US Dollar (USD)</option>
+                <option value="EUR">€ Euro (EUR)</option>
+                <option value="GBP">£ British Pound (GBP)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Security -->
+      <div class="settings-panel hidden" id="settings-panel-security">
+        <div class="card">
+          <h3 class="section-title" data-i18n="settings.security.title">Change Password</h3>
+          <form id="change-password-form">
+            <div class="field"><label data-i18n="settings.security.current">Current Password</label><input type="password" id="cp-current" required autocomplete="current-password"></div>
+            <div class="field"><label data-i18n="settings.security.new">New Password</label><input type="password" id="cp-new" minlength="6" required autocomplete="new-password"></div>
+            <button type="submit" class="btn btn-gold" data-i18n="settings.security.update">Update Password</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Appearance -->
+      <div class="settings-panel hidden" id="settings-panel-appearance">
+        <div class="card">
+          <h3 class="section-title" data-i18n="settings.appearance.title">Appearance</h3>
+          <p style="color:var(--text-dim);font-size:13.5px;margin-top:0;" data-i18n="settings.appearance.desc">Switch between Royal Dark and Royal Light themes.</p>
+          <button class="btn btn-outline" style="width:auto;" onclick="toggleTheme()" data-i18n="settings.appearance.toggle">Toggle Dark / Light Mode</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ===== Reusable Modals ===== -->
+<div id="modal-root"></div>
+<div id="toast-root"></div>
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,28 @@
+{
+  "name": "king-expense-tracker",
+  "version": "1.0.0",
+  "description": "Royal-themed personal expense & income manager with a real Firebase Authentication + Firestore backend, PWA install support, budgets, reminders, reports, and multi-language UI.",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "start": "npx http-server . -p 8080 -c-1",
+    "serve": "npx http-server . -p 8080 -c-1"
+  },
+  "keywords": [
+    "expense-tracker",
+    "firebase",
+    "firestore",
+    "pwa",
+    "budget",
+    "finance"
+  ],
+  "author": "",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/YOUR_USERNAME/king-expense-tracker.git"
+  },
+  "engines": {
+    "node": ">=14"
+  }
+}
